@@ -19,7 +19,7 @@ library(INLA)
 library(glmmTMB)
 library(tictoc)
 
-dat <-  read.csv("https://raw.githubusercontent.com/jfieberg/ISEC_HSF_Workshop/main/Data/d_otter.csv")
+dat <-  read.csv("Data/d_otter.csv")
 
 head(dat)
 str(dat)
@@ -33,13 +33,14 @@ str(dat)
 # - NAT1: natural habitat (reference category)
 # - REST1: residual water
 # - STAU1: a reservoir
+dat %>% count(NAT1, REST1, STAU1)
 
 # Further, the two continuous variables in the model are:
  
 # - Sohlbrei: the river width
 # - Breaks_Dis: step length
  
-# Finally, `Loc` is the binary response variable that indicates if a habitat point was used (1) or available (0).
+# Finally, `Loc` is the binary response variable that indicates if a habitat point was used (1) or available (0). -- WAS THIS CALCULATED IN A PREVIOUS SCRIPT?
 
 # Some data manipulation:
 
@@ -53,8 +54,8 @@ dat$str_ID <- d.map[match(dat$NA_ID,d.map$NA_ID),"str_ID"]
 dat <- dat[order(dat$str_ID),]
 
 # Scale and center the two continuous variables river width (Sohlenbrei) and step length (Breaks_Dis)
-dat$Sohlenbrei <- scale(dat$Sohlenbrei)
-dat$Breaks_Dis <- scale(dat$Breaks_Dis)
+dat$Sohlenbrei <- scale(dat$Sohlenbrei)[,1]
+dat$Breaks_Dis <- scale(dat$Breaks_Dis)[1,]
 
 # Getting to know the data better:
 str(dat)
@@ -74,7 +75,7 @@ dat[1:30,]
 # Remember that the conditional logistic regression model is a special case of the Cox proportional hazard model. clogit() is a wrapper function for the respective formulation. 
  
 # You can check more info:
-?clogit()
+# ?survival::clogit()
 
 # Fitting the model with habitat type (STAU1, REST1), river width and step length
 r.clogit <- clogit(Loc ~ STAU1 + REST1 + Sohlenbrei + Breaks_Dis  
@@ -114,7 +115,6 @@ r.inla.fixed <- inla(formula.fixed, family ="Poisson", data=dat,
                          prec = list(default = prec.beta)
                        )
                 )
-
 # The summary for the posterior distribution of the fixed effects:
 r.inla.fixed$summary.fixed
 
@@ -176,7 +176,7 @@ summary(glmm.TMB.fixed.2)
 ### 3A) Random effects SSFs using INLA
 ##########################
  
-# To fit the model with random slopes in INLA, we need to generate new (but identical) variables of individual ID (ID cannot be used multiple times in the model formula, that's a peculiarity of INLA):
+# To fit the model with random slopes in INLA, we need to generate new (but identical) variables of individual ID (ID cannot be used multiple times in the model formula, that's a peculiarity of INLA): 
 
 dat$ANIMAL_ID1 <- dat$ANIMAL_ID
 dat$ANIMAL_ID2 <- dat$ANIMAL_ID
@@ -214,8 +214,8 @@ r.inla.random$summary.hyperpar
  
 
 # Source R functions for calculating posterior means and medians of the precisions.
-source("https://raw.githubusercontent.com/jfieberg/ISEC_HSF_Workshop/main/CodedExamples/inla_mmarginal.R")
-source("https://raw.githubusercontent.com/jfieberg/ISEC_HSF_Workshop/main/CodedExamples/inla_emarginal.R")
+source("CodedExamples/inla_mmarginal.R")
+source("CodedExamples/inla_emarginal.R")
 inla_emarginal(r.inla.random)
 inla_mmarginal(r.inla.random)
 
